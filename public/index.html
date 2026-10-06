@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live Location Tracker - Socket.io & Express</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: rgba(22, 30, 49, 0.7);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --accent: #10b981;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --code-bg: #050811;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: radial-gradient(circle at top right, #1e293b, var(--bg) 60%);
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 2rem 1.5rem;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    h1 {
+      font-size: 1.85rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 0.9rem;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+    }
+
+    .status-badge.disconnected {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #f87171;
+    }
+
+    .status-badge.disconnected .status-dot {
+      background: #ef4444;
+      box-shadow: 0 0 8px #ef4444;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1.3fr;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 768px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 1.5rem;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4);
+    }
+
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+      font-weight: 500;
+    }
+
+    input {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      padding: 0.65rem 0.85rem;
+      color: #fff;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus {
+      border-color: var(--primary);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1.25rem;
+    }
+
+    button {
+      flex: 1;
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    button:hover {
+      background: var(--primary-hover);
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    button.secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    button.secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    pre {
+      background: var(--code-bg);
+      border-radius: 8px;
+      padding: 1rem;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: #38bdf8;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      max-height: 380px;
+    }
+
+    .badge-count {
+      background: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+      font-size: 0.8rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 9999px;
+    }
+
+    .event-log {
+      margin-top: 1rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding-top: 0.75rem;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .curl-example {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 8px;
+      border: 1px dashed rgba(255, 255, 255, 0.15);
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>In-Memory Location Tracker</h1>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem;">
+          Express HTTP POST <code>/update-location</code> + Socket.io Real-Time Broadcast
+        </p>
+      </div>
+      <div id="statusBadge" class="status-badge disconnected">
+        <span class="status-dot"></span>
+        <span id="statusText">Connecting Socket.io...</span>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- Form to trigger POST /update-location -->
+      <div class="card">
+        <div class="card-title">
+          <span>Update User Location</span>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">POST /update-location</span>
+        </div>
+        <form id="locationForm">
+          <div class="form-group">
+            <label for="userId">User ID</label>
+            <input type="text" id="userId" value="driver_01" required />
+          </div>
+          <div class="form-group">
+            <label for="latitude">Latitude</label>
+            <input type="number" step="any" id="latitude" value="40.7128" required />
+          </div>
+          <div class="form-group">
+            <label for="longitude">Longitude</label>
+            <input type="number" step="any" id="longitude" value="-74.0060" required />
+          </div>
+          <div class="btn-row">
+            <button type="submit">Send POST Request</button>
+            <button type="button" id="randomBtn" class="secondary">Randomize</button>
+          </div>
+        </form>
+
+        <div class="curl-example">
+          <strong style="display:block; margin-bottom: 0.4rem; color: #cbd5e1;">Test via cURL / PowerShell:</strong>
+          <code style="word-break: break-all; color: #a5f3fc; font-size: 0.78rem;">
+            curl -X POST http://localhost:3000/update-location -H "Content-Type: application/json" -d "{\"userId\":\"courier_9\", \"latitude\": 51.5074, \"longitude\": -0.1278}"
+          </code>
+        </div>
+      </div>
+
+      <!-- Real-Time Socket.io Live Memory Object Display -->
+      <div class="card">
+        <div class="card-title">
+          <span>In-Memory State</span>
+          <span class="badge-count" id="userCount">0 users</span>
+        </div>
+        <pre id="jsonViewer">Waiting for Socket.io state...</pre>
+        <div class="event-log">
+          <span id="lastEventMsg">No events received yet</span>
+          <span id="lastTimestamp">--:--:--</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const statusBadge = document.getElementById('statusBadge');
+    const statusText = document.getElementById('statusText');
+    const jsonViewer = document.getElementById('jsonViewer');
+    const userCount = document.getElementById('userCount');
+    const lastEventMsg = document.getElementById('lastEventMsg');
+    const lastTimestamp = document.getElementById('lastTimestamp');
+
+    // Connection events
+    socket.on('connect', () => {
+      statusBadge.classList.remove('disconnected');
+      statusText.textContent = `Connected (${socket.id})`;
+    });
+
+    socket.on('disconnect', () => {
+      statusBadge.classList.add('disconnected');
+      statusText.textContent = 'Disconnected';
+    });
+
+    // Real-time locations listener
+    socket.on('locations', (locations) => {
+      jsonViewer.textContent = JSON.stringify(locations, null, 2);
+      const count = Object.keys(locations).length;
+      userCount.textContent = `${count} user${count === 1 ? '' : 's'}`;
+      lastEventMsg.textContent = 'Received updated state from server';
+      lastTimestamp.textContent = new Date().toLocaleTimeString();
+    });
+
+    // Form submission triggers HTTP POST /update-location
+    document.getElementById('locationForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const userId = document.getElementById('userId').value.trim();
+      const latitude = parseFloat(document.getElementById('latitude').value);
+      const longitude = parseFloat(document.getElementById('longitude').value);
+
+      try {
+        const response = await fetch('/update-location', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, latitude, longitude })
+        });
+        const result = await response.json();
+        console.log('POST Response:', result);
+      } catch (err) {
+        console.error('Error posting location:', err);
+      }
+    });
+
+    // Randomize helper
+    document.getElementById('randomBtn').addEventListener('click', () => {
+      const users = ['driver_01', 'courier_9', 'agent_47', 'rider_88'];
+      const randomUser = users[Math.floor(Math.random() * users.length)];
+      document.getElementById('userId').value = randomUser;
+      document.getElementById('latitude').value = (Math.random() * 180 - 90).toFixed(6);
+      document.getElementById('longitude').value = (Math.random() * 360 - 180).toFixed(6);
+    });
+  </script>
+</body>
+</html>

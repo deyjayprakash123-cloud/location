@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: location-tracker-backend
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /locations
+    envVars:
+      - key: NODE_ENV
+        value: production
